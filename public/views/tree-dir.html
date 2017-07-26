@@ -1,6 +1,14 @@
 {{template "head.html"}}
 
-<h1>{{.Dir}}</h1>
+<h1>{{.RepoName}}</h1>
+
+<nav>
+	<p>
+		<a href="/">{{.RepoName}}</a>
+		{{range .Parents}} / {{.}}{{end}}
+		{{if ne .DirName ""}} / {{.DirName}}{{end}}
+	</p>
+</nav>
 
 <nav class="menu">
 	{{range .Entries}}

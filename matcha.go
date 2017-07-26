@@ -5,7 +5,9 @@ import (
 	"html/template"
 	"io"
 	"net/http"
+	"path"
 	"path/filepath"
+	"strings"
 
 	"github.com/labstack/echo"
 	"github.com/shurcooL/octiconssvg"
@@ -62,16 +64,22 @@ func (s *server) tree(c echo.Context, branch, p string) error {
 
 	var data struct{
 		RepoName string
-		Dir, DirSep string
+		DirName, DirSep string
+		Parents []string
 		Entries []object.TreeEntry
 	}
 
 	data.RepoName = filepath.Base(s.dir)
-	data.Dir = p
 	data.Entries = tree.Entries
 
-	data.DirSep = "/"+data.Dir+"/"
-	if data.Dir == "/" {
+	dir, file := path.Split(p)
+	data.DirName = file
+	if dir := strings.Trim(dir, "/"); dir != "" {
+		data.Parents = strings.Split(dir, "/")
+	}
+
+	data.DirSep = "/"+p+"/"
+	if p == "/" {
 		data.DirSep = "/"
 	}
 
