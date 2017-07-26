@@ -1,0 +1,11 @@
+{{template "head.html"}}
+
+<h1>{{.RepoName}}</h1>
+
+<nav class="menu">
+	{{range .Files}}
+	<a class="menu-item" href="/blob/master/{{.}}">{{.}}</a>
+	{{end}}
+</nav>
+
+{{template "foot.html"}}

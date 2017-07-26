@@ -1,0 +1,8 @@
+{
+  "name": "matcha",
+  "version": "0.0.0",
+  "license": "MIT",
+  "dependencies": {
+    "primer-css": "^9.0.0"
+  }
+}
