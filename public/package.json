@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "license": "MIT",
   "dependencies": {
+    "octicons": "^5.0.1",
     "primer-css": "^9.0.0"
   }
 }

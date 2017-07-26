@@ -1,12 +1,15 @@
 package matcha
 
 import (
+	"bytes"
 	"html/template"
 	"io"
 	"net/http"
 	"path/filepath"
 
 	"github.com/labstack/echo"
+	"github.com/shurcooL/octiconssvg"
+	nethtml "golang.org/x/net/html"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
 )
@@ -120,7 +123,12 @@ func New(e *echo.Echo, dir string) error {
 		return err
 	}
 
-	t := template.Must(template.ParseGlob("public/views/*.html"))
+	funcs := template.FuncMap{"icon": func(name string) template.HTML {
+		var b bytes.Buffer
+		nethtml.Render(&b, octiconssvg.Icon(name))
+		return template.HTML(b.String())
+	}}
+	t := template.Must(template.New("").Funcs(funcs).ParseGlob("public/views/*.html"))
 	e.Renderer = &templateRenderer{t}
 
 	r, err := git.PlainOpen(dir)
