@@ -1,10 +1,14 @@
 {{template "head.html"}}
 
-<h1>{{.RepoName}}</h1>
+<h1>{{.Dir}}</h1>
 
 <nav class="menu">
-	{{range .Files}}
-	<a class="menu-item" href="/blob/master/{{.}}">{{.}}</a>
+	{{range .Entries}}
+		{{if .Mode.ToOSFileMode.IsDir}}
+			<a class="menu-item" href="/tree/master{{$.DirSep}}{{.Name}}">{{.Name}}</a>
+		{{else}}
+			<a class="menu-item" href="/blob/master{{$.DirSep}}{{.Name}}">{{.Name}}</a>
+		{{end}}
 	{{end}}
 </nav>
 
