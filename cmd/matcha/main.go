@@ -22,7 +22,9 @@ func main() {
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
-	matcha.New(e, ".")
+	if err := matcha.New(e, "."); err != nil {
+		e.Logger.Fatal(err)
+	}
 
 	e.Logger.Fatal(e.Start(addr))
 }
