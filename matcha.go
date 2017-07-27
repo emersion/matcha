@@ -10,10 +10,12 @@ import (
 	"strings"
 
 	"github.com/labstack/echo"
+	"github.com/shurcooL/github_flavored_markdown"
 	"github.com/shurcooL/octiconssvg"
 	nethtml "golang.org/x/net/html"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
+	"gopkg.in/src-d/go-git.v4/plumbing/filemode"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
 )
 
@@ -80,10 +82,30 @@ func (s *server) tree(c echo.Context, refName, p string) error {
 		DirName, DirSep string
 		Parents []string
 		Entries []object.TreeEntry
+		ReadMe template.HTML
 	}
 
 	data.headerData = s.headerData()
 	data.Entries = tree.Entries
+
+	for _, e := range tree.Entries {
+		name := strings.TrimSuffix(e.Name, path.Ext(e.Name))
+		if strings.EqualFold(name, "README") && e.Mode & filemode.Regular != 0 {
+			f, err := tree.TreeEntryFile(&e)
+			if err != nil {
+				return err
+			}
+
+			raw, err := f.Contents()
+			if err != nil {
+				return err
+			}
+
+			rendered := github_flavored_markdown.Markdown([]byte(raw))
+			data.ReadMe = template.HTML(string(rendered))
+			break
+		}
+	}
 
 	dir, file := path.Split(p)
 	data.DirName = file
@@ -96,7 +118,7 @@ func (s *server) tree(c echo.Context, refName, p string) error {
 		data.DirSep = "/"
 	}
 
-	return c.Render(http.StatusOK, "tree-dir.html", data)
+	return c.Render(http.StatusOK, "tree.html", data)
 }
 
 func (s *server) raw(c echo.Context, refName, p string) error {
