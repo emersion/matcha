@@ -29,10 +29,10 @@ type server struct {
 	r *git.Repository
 }
 
-func (s *server) tree(c echo.Context, branch, p string) error {
-	if branch != "master" {
+func (s *server) tree(c echo.Context, refName, p string) error {
+	if refName != "master" {
 		// TODO
-		return c.String(http.StatusNotFound, "No such branch")
+		return c.String(http.StatusNotFound, "No such ref")
 	}
 	if p == "" {
 		p = "/"
@@ -86,10 +86,10 @@ func (s *server) tree(c echo.Context, branch, p string) error {
 	return c.Render(http.StatusOK, "tree-dir.html", data)
 }
 
-func (s *server) blob(c echo.Context, branch, p string) error {
-	if branch != "master" {
+func (s *server) raw(c echo.Context, refName, p string) error {
+	if refName != "master" {
 		// TODO
-		return c.String(http.StatusNotFound, "No such branch")
+		return c.String(http.StatusNotFound, "No such ref")
 	}
 
 	ref, err := s.r.Head()
@@ -156,8 +156,8 @@ func New(e *echo.Echo, dir string) error {
 		return s.tree(c, c.Param("ref"), c.Param("*"))
 	})
 
-	e.GET("/blob/:ref/*", func(c echo.Context) error {
-		return s.blob(c, c.Param("ref"), c.Param("*"))
+	e.GET("/raw/:ref/*", func(c echo.Context) error {
+		return s.raw(c, c.Param("ref"), c.Param("*"))
 	})
 
 	e.Static("/static", "public/node_modules")

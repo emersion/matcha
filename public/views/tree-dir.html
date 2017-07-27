@@ -4,8 +4,8 @@
 
 <nav>
 	<p>
-		<a href="/">{{.RepoName}}</a>
-		{{range .Parents}} / {{.}}{{end}}
+		<a href="/"><strong>{{.RepoName}}</strong></a>
+		{{range .Parents}} / <a href="#">{{.}}</a>{{end}}
 		{{if ne .DirName ""}} / {{.DirName}}{{end}}
 	</p>
 </nav>
@@ -15,7 +15,7 @@
 		{{if .Mode.ToOSFileMode.IsDir}}
 			<a class="menu-item" href="/tree/master{{$.DirSep}}{{.Name}}">{{icon "file-directory"}}&nbsp;{{.Name}}</a>
 		{{else}}
-			<a class="menu-item" href="/blob/master{{$.DirSep}}{{.Name}}">{{icon "file"}}&nbsp;{{.Name}}</a>
+			<a class="menu-item" href="/raw/master{{$.DirSep}}{{.Name}}">{{icon "file"}}&nbsp;{{.Name}}</a>
 		{{end}}
 	{{end}}
 </nav>
