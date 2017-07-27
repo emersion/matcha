@@ -1,14 +1,20 @@
-{{template "head.html"}}
+{{template "header.html" .}}
 
-<h1>{{.RepoName}}</h1>
-
-<nav>
-	<p>
-		<a href="/"><strong>{{.RepoName}}</strong></a>
-		{{range .Parents}} / <a href="#">{{.}}</a>{{end}}
-		{{if ne .DirName ""}} / {{.DirName}}{{end}}
-	</p>
-</nav>
+{{if eq .DirName ""}}
+	<nav class="subnav" aria-label="Respository">
+		<a href="/commits/master" class="tabnav-tab">Commits</a>
+		<a href="/branches" class="tabnav-tab">Branches</a>
+		<a href="/tags" class="tabnav-tab">Tags</a>
+	</nav>
+{{else}}
+	<nav>
+		<p>
+			<a href="/"><strong>{{.RepoName}}</strong></a>
+			{{range .Parents}} / <a href="#">{{.}}</a>{{end}}
+			/ {{.DirName}}
+		</p>
+	</nav>
+{{end}}
 
 <nav class="menu">
 	{{range .Entries}}

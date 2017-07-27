@@ -1,0 +1,9 @@
+{{template "header.html" .}}
+
+<nav class="menu">
+	{{range .Branches}}
+		<a class="menu-item" href="/tree/{{.}}">{{.}}</a>
+	{{end}}
+</nav>
+
+{{template "foot.html"}}

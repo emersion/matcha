@@ -13,6 +13,7 @@ import (
 	"github.com/shurcooL/octiconssvg"
 	nethtml "golang.org/x/net/html"
 	"gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
 )
 
@@ -29,13 +30,20 @@ type server struct {
 	r *git.Repository
 }
 
+type headerData struct {
+	RepoName string
+}
+
+func (s *server) headerData() *headerData {
+	return &headerData{
+		RepoName: filepath.Base(s.dir),
+	}
+}
+
 func (s *server) tree(c echo.Context, refName, p string) error {
 	if refName != "master" {
 		// TODO
 		return c.String(http.StatusNotFound, "No such ref")
-	}
-	if p == "" {
-		p = "/"
 	}
 
 	ref, err := s.r.Head()
@@ -53,6 +61,9 @@ func (s *server) tree(c echo.Context, refName, p string) error {
 		return err
 	}
 
+	if p == "" {
+		p = "/"
+	}
 	if p != "/" {
 		tree, err = tree.Tree(p)
 		if err == object.ErrDirectoryNotFound {
@@ -63,13 +74,13 @@ func (s *server) tree(c echo.Context, refName, p string) error {
 	}
 
 	var data struct{
-		RepoName string
+		*headerData
 		DirName, DirSep string
 		Parents []string
 		Entries []object.TreeEntry
 	}
 
-	data.RepoName = filepath.Base(s.dir)
+	data.headerData = s.headerData()
 	data.Entries = tree.Entries
 
 	dir, file := path.Split(p)
@@ -125,6 +136,31 @@ func (s *server) raw(c echo.Context, refName, p string) error {
 	return c.Stream(http.StatusOK, mediaType, r)
 }
 
+func (s *server) branches(c echo.Context) error {
+	branches, err := s.r.Branches()
+	if err != nil {
+		return err
+	}
+	defer branches.Close()
+
+	var data struct{
+		*headerData
+		Branches []string
+	}
+
+	data.headerData = s.headerData()
+
+	err = branches.ForEach(func(ref *plumbing.Reference) error {
+		data.Branches = append(data.Branches, ref.Name().Short())
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	return c.Render(http.StatusOK, "branches.html", data)
+}
+
 func New(e *echo.Echo, dir string) error {
 	dir, err := filepath.Abs(dir)
 	if err != nil {
@@ -151,14 +187,16 @@ func New(e *echo.Echo, dir string) error {
 	e.GET("/", func(c echo.Context) error {
 		return s.tree(c, "master", "/")
 	})
-
+	e.GET("/tree/:ref", func(c echo.Context) error {
+		return s.tree(c, c.Param("ref"), "")
+	})
 	e.GET("/tree/:ref/*", func(c echo.Context) error {
 		return s.tree(c, c.Param("ref"), c.Param("*"))
 	})
-
 	e.GET("/raw/:ref/*", func(c echo.Context) error {
 		return s.raw(c, c.Param("ref"), c.Param("*"))
 	})
+	e.GET("/branches", s.branches)
 
 	e.Static("/static", "public/node_modules")
 
