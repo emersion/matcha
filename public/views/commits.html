@@ -1,0 +1,15 @@
+{{template "header.html" .}}
+
+<nav class="menu">
+	{{range .Commits}}
+		<div class="menu-item">
+			<strong>{{.Message}}</strong>
+			{{.Author.Name}}
+			{{.Author.When}}
+			<a href="/commit/{{.Hash}}">{{.Hash}}</a>
+			<a class="btn btn-outline" type="button" href="/tree/{{.Hash}}">{{icon "code"}}</a>
+		</div>
+	{{end}}
+</nav>
+
+{{template "foot.html"}}

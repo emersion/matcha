@@ -17,6 +17,8 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
 )
 
+const pgpSigEndTag = "-----END PGP SIGNATURE-----"
+
 type templateRenderer struct {
 	templates *template.Template
 }
@@ -161,6 +163,40 @@ func (s *server) branches(c echo.Context) error {
 	return c.Render(http.StatusOK, "branches.html", data)
 }
 
+func (s *server) commits(c echo.Context, refName string) error {
+	if refName != "master" {
+		// TODO
+		return c.String(http.StatusNotFound, "No such ref")
+	}
+
+	commits, err := s.r.Log(&git.LogOptions{})
+	if err != nil {
+		return err
+	}
+	defer commits.Close()
+
+	var data struct{
+		*headerData
+		Commits []*object.Commit
+	}
+
+	data.headerData = s.headerData()
+
+	err = commits.ForEach(func(c *object.Commit) error {
+		if i := strings.Index(c.Message, pgpSigEndTag); i >= 0 {
+			c.Message = c.Message[i+len(pgpSigEndTag):]
+		}
+
+		data.Commits = append(data.Commits, c)
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	return c.Render(http.StatusOK, "commits.html", data)
+}
+
 func New(e *echo.Echo, dir string) error {
 	dir, err := filepath.Abs(dir)
 	if err != nil {
@@ -197,6 +233,9 @@ func New(e *echo.Echo, dir string) error {
 		return s.raw(c, c.Param("ref"), c.Param("*"))
 	})
 	e.GET("/branches", s.branches)
+	e.GET("/commits/:ref", func(c echo.Context) error {
+		return s.commits(c, c.Param("ref"))
+	})
 
 	e.Static("/static", "public/node_modules")
 
