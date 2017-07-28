@@ -6,7 +6,9 @@ A simple read-only web interface for Git repositories.
 
 ```sh
 go get -u github.com/emersion/matcha/cmd/matcha
-matcha # In a Git repo
+cd $GOPATH/src/github.com/emersion/matcha
+(cd public && npm install)
+matcha
 ```
 
 ## License
