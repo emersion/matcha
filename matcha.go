@@ -44,19 +44,26 @@ func (s *server) headerData() *headerData {
 	}
 }
 
-func (s *server) tree(c echo.Context, refName, p string) error {
-	if refName != "master" {
-		// TODO
-		return c.String(http.StatusNotFound, "No such ref")
+func (s *server) commitFromRev(revName string) (*object.Commit, error) {
+	commit, err := s.r.CommitObject(plumbing.NewHash(revName))
+	if err != plumbing.ErrObjectNotFound {
+		return commit, err
 	}
 
-	ref, err := s.r.Head()
+	refName := plumbing.ReferenceName("refs/heads/"+revName)
+	ref, err := s.r.Reference(refName, true)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	commit, err := s.r.CommitObject(ref.Hash())
-	if err != nil {
+	return s.r.CommitObject(ref.Hash())
+}
+
+func (s *server) tree(c echo.Context, revName, p string) error {
+	commit, err := s.commitFromRev(revName)
+	if err == plumbing.ErrReferenceNotFound {
+		return c.String(http.StatusNotFound, "No such revision")
+	} else if err != nil {
 		return err
 	}
 
@@ -121,19 +128,11 @@ func (s *server) tree(c echo.Context, refName, p string) error {
 	return c.Render(http.StatusOK, "tree.html", data)
 }
 
-func (s *server) raw(c echo.Context, refName, p string) error {
-	if refName != "master" {
-		// TODO
-		return c.String(http.StatusNotFound, "No such ref")
-	}
-
-	ref, err := s.r.Head()
-	if err != nil {
-		return err
-	}
-
-	commit, err := s.r.CommitObject(ref.Hash())
-	if err != nil {
+func (s *server) raw(c echo.Context, revName, p string) error {
+	commit, err := s.commitFromRev(revName)
+	if err == plumbing.ErrReferenceNotFound {
+		return c.String(http.StatusNotFound, "No such revision")
+	} else if err != nil {
 		return err
 	}
 
@@ -185,13 +184,15 @@ func (s *server) branches(c echo.Context) error {
 	return c.Render(http.StatusOK, "branches.html", data)
 }
 
-func (s *server) commits(c echo.Context, refName string) error {
-	if refName != "master" {
-		// TODO
-		return c.String(http.StatusNotFound, "No such ref")
+func (s *server) commits(c echo.Context, revName string) error {
+	commit, err := s.commitFromRev(revName)
+	if err == plumbing.ErrReferenceNotFound {
+		return c.String(http.StatusNotFound, "No such revision")
+	} else if err != nil {
+		return err
 	}
 
-	commits, err := s.r.Log(&git.LogOptions{})
+	commits, err := s.r.Log(&git.LogOptions{From: commit.Hash})
 	if err != nil {
 		return err
 	}
