@@ -1,16 +1,22 @@
 {{template "header.html" .}}
 
 {{with .Commit}}
-	<h3>{{.Message}}</h3>
-
-	{{.Author.Name}}
-	{{.Author.When}}
-	{{.Hash}}
-	<a class="btn btn-outline" type="button" href="/tree/{{.Hash}}">Browse files</a>
+	<div class="Box Box--blue">
+		<div class="Box-header">
+			<a class="btn btn-outline float-right" type="button" href="/tree/{{.Hash}}">Browse files</a>
+			<h3>{{.Message}}</h3>
+		</div>
+		<div class="Box-body">
+			<code class="float-right">{{.Hash}}</code>
+			{{.Author.Name}} commited on {{.Author.When}}
+		</div>
+	</div>
 {{end}}
 
-<pre>
-	<code class="language-diff">{{.Diff}}</code>
-</pre>
+<p></p>
+
+<div class="markdown-body">
+	<pre><code class="language-diff">{{.Diff}}</code></pre>
+</div>
 
 {{template "footer.html"}}
