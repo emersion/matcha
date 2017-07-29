@@ -21,6 +21,13 @@ import (
 
 const pgpSigEndTag = "-----END PGP SIGNATURE-----"
 
+func cleanupCommitMessage(msg string) string {
+	if i := strings.Index(msg, pgpSigEndTag); i >= 0 {
+		msg = msg[i+len(pgpSigEndTag):]
+	}
+	return msg
+}
+
 type templateRenderer struct {
 	templates *template.Template
 }
@@ -231,9 +238,7 @@ func (s *server) commits(c echo.Context, revName string) error {
 	data.headerData = s.headerData()
 
 	err = commits.ForEach(func(c *object.Commit) error {
-		if i := strings.Index(c.Message, pgpSigEndTag); i >= 0 {
-			c.Message = c.Message[i+len(pgpSigEndTag):]
-		}
+		c.Message = cleanupCommitMessage(c.Message)
 
 		data.Commits = append(data.Commits, c)
 		return nil
@@ -243,6 +248,43 @@ func (s *server) commits(c echo.Context, revName string) error {
 	}
 
 	return c.Render(http.StatusOK, "commits.html", data)
+}
+
+func (s *server) commit(c echo.Context, hash string) error {
+	commit, err := s.r.CommitObject(plumbing.NewHash(hash))
+	if err == plumbing.ErrObjectNotFound {
+		return c.String(http.StatusNotFound, "No such commit")
+	} else if err != nil {
+		return err
+	}
+
+	var data struct{
+		*headerData
+		Commit *object.Commit
+		Diff string
+	}
+
+	data.headerData = s.headerData()
+
+	commit.Message = cleanupCommitMessage(commit.Message)
+	data.Commit = commit
+
+	if len(commit.ParentHashes) > 0 {
+		// TODO
+		parent, err := s.r.CommitObject(commit.ParentHashes[0])
+		if err != nil {
+			return err
+		}
+
+		patch, err := parent.Patch(commit)
+		if err != nil {
+			return err
+		}
+
+		data.Diff = patch.String()
+	}
+
+	return c.Render(http.StatusOK, "commit.html", data)
 }
 
 func New(e *echo.Echo, dir string) error {
@@ -284,6 +326,9 @@ func New(e *echo.Echo, dir string) error {
 	e.GET("/tags", s.tags)
 	e.GET("/commits/:ref", func(c echo.Context) error {
 		return s.commits(c, c.Param("ref"))
+	})
+	e.GET("/commit/:hash", func(c echo.Context) error {
+		return s.commit(c, c.Param("hash"))
 	})
 
 	e.Static("/static", "public/node_modules")

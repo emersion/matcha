@@ -1,0 +1,14 @@
+{{template "header.html" .}}
+
+{{with .Commit}}
+	<h3>{{.Message}}</h3>
+
+	{{.Author.Name}}
+	{{.Author.When}}
+	{{.Hash}}
+	<a class="btn btn-outline" type="button" href="/tree/{{.Hash}}">Browse files</a>
+{{end}}
+
+<pre>{{.Diff}}</pre>
+
+{{template "foot.html"}}
