@@ -9,6 +9,8 @@
 	<a class="btn btn-outline" type="button" href="/tree/{{.Hash}}">Browse files</a>
 {{end}}
 
-<pre>{{.Diff}}</pre>
+<pre>
+	<code class="language-diff">{{.Diff}}</code>
+</pre>
 
 {{template "foot.html"}}

@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/labstack/echo"
-	"github.com/shurcooL/github_flavored_markdown"
+	"github.com/russross/blackfriday"
 	"github.com/shurcooL/octiconssvg"
 	nethtml "golang.org/x/net/html"
 	"gopkg.in/src-d/go-git.v4"
@@ -115,7 +115,7 @@ func (s *server) tree(c echo.Context, revName, p string) error {
 				return err
 			}
 
-			rendered := github_flavored_markdown.Markdown([]byte(raw))
+			rendered := blackfriday.MarkdownCommon([]byte(raw))
 			data.ReadMe = template.HTML(string(rendered))
 			break
 		}
