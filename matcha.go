@@ -184,6 +184,31 @@ func (s *server) branches(c echo.Context) error {
 	return c.Render(http.StatusOK, "branches.html", data)
 }
 
+func (s *server) tags(c echo.Context) error {
+	tags, err := s.r.TagObjects()
+	if err != nil {
+		return err
+	}
+	defer tags.Close()
+
+	var data struct{
+		*headerData
+		Tags []*object.Tag
+	}
+
+	data.headerData = s.headerData()
+
+	err = tags.ForEach(func(t *object.Tag) error {
+		data.Tags = append(data.Tags, t)
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	return c.Render(http.StatusOK, "tags.html", data)
+}
+
 func (s *server) commits(c echo.Context, revName string) error {
 	commit, err := s.commitFromRev(revName)
 	if err == plumbing.ErrReferenceNotFound {
@@ -256,6 +281,7 @@ func New(e *echo.Echo, dir string) error {
 		return s.raw(c, c.Param("ref"), c.Param("*"))
 	})
 	e.GET("/branches", s.branches)
+	e.GET("/tags", s.tags)
 	e.GET("/commits/:ref", func(c echo.Context) error {
 		return s.commits(c, c.Param("ref"))
 	})
