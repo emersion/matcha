@@ -2,9 +2,9 @@
 
 {{if eq .DirName ""}}
 	<nav class="subnav" aria-label="Respository">
-		<a href="/commits/master" class="tabnav-tab">Commits</a>
-		<a href="/branches" class="tabnav-tab">Branches</a>
-		<a href="/tags" class="tabnav-tab">Tags</a>
+		<a href="/commits/master" class="tabnav-tab">{{icon "git-commit"}} Commits</a>
+		<a href="/branches" class="tabnav-tab">{{icon "git-branch"}} Branches</a>
+		<a href="/tags" class="tabnav-tab">{{icon "tag"}} Tags</a>
 	</nav>
 {{else}}
 	<nav>
