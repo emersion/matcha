@@ -135,6 +135,56 @@ func (s *server) tree(c echo.Context, revName, p string) error {
 	return c.Render(http.StatusOK, "tree.html", data)
 }
 
+func (s *server) blob(c echo.Context, revName, p string) error {
+	commit, err := s.commitFromRev(revName)
+	if err == plumbing.ErrReferenceNotFound {
+		return c.String(http.StatusNotFound, "No such revision")
+	} else if err != nil {
+		return err
+	}
+
+	f, err := commit.File(p)
+	if err == object.ErrFileNotFound {
+		return c.String(http.StatusNotFound, "No such file")
+	} else if err != nil {
+		return err
+	}
+
+	var data struct{
+		*headerData
+		Filepath, Filename, Extension string
+		Parents []string
+		IsBinary bool
+		Contents string
+	}
+
+	data.headerData = s.headerData()
+
+	dirpath, filename := path.Split(p)
+	data.Filepath = p
+	data.Filename = filename
+	data.Extension = strings.TrimLeft(path.Ext(p), ".")
+	if dirpath := strings.Trim(dirpath, "/"); dirpath != "" {
+		data.Parents = strings.Split(dirpath, "/")
+	}
+
+	if f.Size > 1024*1024 {
+		data.IsBinary = true
+	} else if binary, err := f.IsBinary(); err != nil || binary {
+		data.IsBinary = true
+	}
+
+	if !data.IsBinary {
+		contents, err := f.Contents()
+		if err != nil {
+			return err
+		}
+		data.Contents = contents
+	}
+
+	return c.Render(http.StatusOK, "blob.html", data)
+}
+
 func (s *server) raw(c echo.Context, revName, p string) error {
 	commit, err := s.commitFromRev(revName)
 	if err == plumbing.ErrReferenceNotFound {
@@ -318,6 +368,9 @@ func New(e *echo.Echo, dir string) error {
 	})
 	e.GET("/tree/:ref/*", func(c echo.Context) error {
 		return s.tree(c, c.Param("ref"), c.Param("*"))
+	})
+	e.GET("/blob/:ref/*", func(c echo.Context) error {
+		return s.blob(c, c.Param("ref"), c.Param("*"))
 	})
 	e.GET("/raw/:ref/*", func(c echo.Context) error {
 		return s.raw(c, c.Param("ref"), c.Param("*"))

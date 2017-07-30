@@ -1,0 +1,26 @@
+{{template "header.html" .}}
+
+<nav>
+	<p>
+		<a href="/"><strong>{{.RepoName}}</strong></a>
+		{{range .Parents}} / <a href="#">{{.}}</a>{{end}}
+		/ {{.Filename}}
+	</p>
+</nav>
+
+<p>
+	<a href="/raw/master/{{.Filepath}}" class="btn btn-sm">Raw</a>
+</p>
+
+{{if .IsBinary}}
+	<div class="blankslate">
+		<h3>Cannot preview file</h3>
+		<p>You can download it by clicking on "Raw".</p>
+	</div>
+{{else}}
+	<div class="markdown-body">
+		<pre><code class="language-{{.Extension}}">{{.Contents}}</code></pre>
+	</div>
+{{end}}
+
+{{template "footer.html"}}

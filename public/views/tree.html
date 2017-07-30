@@ -21,7 +21,7 @@
 		{{if .Mode.ToOSFileMode.IsDir}}
 			<a class="menu-item" href="/tree/master{{$.DirSep}}{{.Name}}">{{icon "file-directory"}}&nbsp;{{.Name}}</a>
 		{{else}}
-			<a class="menu-item" href="/raw/master{{$.DirSep}}{{.Name}}">{{icon "file"}}&nbsp;{{.Name}}</a>
+			<a class="menu-item" href="/blob/master{{$.DirSep}}{{.Name}}">{{icon "file"}}&nbsp;{{.Name}}</a>
 		{{end}}
 	{{end}}
 </nav>
