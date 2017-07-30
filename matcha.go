@@ -127,6 +127,7 @@ func (s *server) tree(c echo.Context, revName, p string) error {
 
 	var data struct{
 		*headerData
+		Revision string
 		DirName, DirSep string
 		Parents []breadcumbItem
 		Entries []object.TreeEntry
@@ -134,6 +135,7 @@ func (s *server) tree(c echo.Context, revName, p string) error {
 	}
 
 	data.headerData = s.headerData()
+	data.Revision = revName
 	data.Entries = tree.Entries
 
 	for _, e := range tree.Entries {
@@ -184,6 +186,7 @@ func (s *server) blob(c echo.Context, revName, p string) error {
 
 	var data struct{
 		*headerData
+		Revision string
 		Filepath, Filename, Extension string
 		Parents []breadcumbItem
 		IsBinary bool
@@ -192,6 +195,7 @@ func (s *server) blob(c echo.Context, revName, p string) error {
 	}
 
 	data.headerData = s.headerData()
+	data.Revision = revName
 
 	dirpath, filename := path.Split(p)
 	data.Filepath = p
