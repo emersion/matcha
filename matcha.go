@@ -77,9 +77,11 @@ func (s *server) commitFromRev(revName string) (*object.Commit, error) {
 		return commit, err
 	}
 
-	refName := plumbing.ReferenceName("refs/heads/"+revName)
-	ref, err := s.r.Reference(refName, true)
-	if err != nil {
+	// TODO: use plumbing.ReferenceName(revName)
+	ref, err := s.r.Reference(plumbing.ReferenceName("refs/heads/"+revName), true)
+	if err == plumbing.ErrReferenceNotFound {
+		ref, err = s.r.Reference(plumbing.ReferenceName("refs/tags/"+revName), true)
+	} else if err != nil {
 		return nil, err
 	}
 
