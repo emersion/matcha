@@ -173,6 +173,7 @@ func (s *server) blob(c echo.Context, revName, p string) error {
 		Filepath, Filename, Extension string
 		Parents []breadcumbItem
 		IsBinary bool
+		Rendered template.HTML
 		Contents string
 	}
 
@@ -196,6 +197,12 @@ func (s *server) blob(c echo.Context, revName, p string) error {
 			return err
 		}
 		data.Contents = contents
+
+		switch data.Extension {
+		case "md", "markdown":
+			rendered := blackfriday.MarkdownCommon([]byte(contents))
+			data.Rendered = template.HTML(string(rendered))
+		}
 	}
 
 	return c.Render(http.StatusOK, "blob.html", data)
