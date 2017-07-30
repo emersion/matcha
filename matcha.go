@@ -17,6 +17,7 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/filemode"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
+	"gopkg.in/src-d/go-git.v4/plumbing/storer"
 )
 
 const pgpSigEndTag = "-----END PGP SIGNATURE-----"
@@ -100,6 +101,75 @@ func (s *server) commitFromRev(revName string) (*object.Commit, error) {
 	return tag.Commit()
 }
 
+func (s *server) lastCommits(current *object.Commit, patterns []string) ([]*object.Commit, error) {
+	last := make([]*object.Commit, len(patterns))
+	remaining := len(patterns)
+
+	commits, err := s.r.Log(&git.LogOptions{From: current.Hash})
+	if err != nil {
+		return nil, err
+	}
+
+	err = commits.ForEach(func(c *object.Commit) error {
+		ctree, err := c.Tree()
+		if err != nil {
+			return err
+		}
+
+		parents := 0
+		err = c.Parents().ForEach(func(p *object.Commit) error {
+			parents++
+
+			ptree, err := p.Tree()
+			if err != nil {
+				return err
+			}
+
+			changes, err := ptree.Diff(ctree)
+			if err != nil {
+				return err
+			}
+
+			for _, change := range changes {
+				for i, pattern := range patterns {
+					if last[i] == nil && strings.HasPrefix(change.To.Name, pattern) {
+						last[i] = c
+						remaining--
+						if remaining == 0 {
+							return storer.ErrStop
+						}
+					}
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+
+		if parents == 0 {
+			for i, l := range last {
+				if l == nil {
+					last[i] = c
+					remaining--
+				}
+			}
+		}
+
+		if remaining == 0 {
+			return storer.ErrStop
+		}
+		return nil
+	})
+
+	return last, err
+}
+
+type treeEntry struct {
+	*object.TreeEntry
+	LastCommit *object.Commit
+}
+
 func (s *server) tree(c echo.Context, revName, p string) error {
 	commit, err := s.commitFromRev(revName)
 	if err == plumbing.ErrReferenceNotFound {
@@ -130,13 +200,44 @@ func (s *server) tree(c echo.Context, revName, p string) error {
 		Revision string
 		DirName, DirSep string
 		Parents []breadcumbItem
-		Entries []object.TreeEntry
+		Entries []treeEntry
+		LastCommit *object.Commit
 		ReadMe template.HTML
 	}
 
 	data.headerData = s.headerData()
 	data.Revision = revName
-	data.Entries = tree.Entries
+
+	patterns := make([]string, 0, len(tree.Entries) + 1)
+	pathPattern := p + "/"
+	if p == "/" {
+		pathPattern = ""
+	}
+	patterns = append(patterns, pathPattern)
+	for _, e := range tree.Entries {
+		pattern := e.Name
+		if p != "/" {
+			pattern = path.Join(p, pattern)
+		}
+		if e.Mode & filemode.Dir != 0 {
+			pattern += "/"
+		}
+		patterns = append(patterns, pattern)
+	}
+
+	lastCommits, err := s.lastCommits(commit, patterns)
+	if err != nil {
+		return err
+	}
+	for _, c := range lastCommits {
+		c.Message = cleanupCommitMessage(c.Message)
+	}
+
+	data.Entries = make([]treeEntry, len(tree.Entries))
+	data.LastCommit = lastCommits[0]
+	for i := range tree.Entries {
+		data.Entries[i] = treeEntry{&tree.Entries[i], lastCommits[i+1]}
+	}
 
 	for _, e := range tree.Entries {
 		name := strings.TrimSuffix(e.Name, path.Ext(e.Name))
