@@ -3,11 +3,12 @@
 <nav class="menu">
 	{{range .Commits}}
 		<div class="menu-item">
-			<strong>{{.Message}}</strong>
-			{{.Author.Name}}
-			{{.Author.When}}
-			<a href="/commit/{{.Hash}}">{{.Hash}}</a>
-			<a class="btn btn-outline" type="button" href="/tree/{{.Hash}}">{{icon "code"}}</a>
+			<span class="float-right">
+				<a href="/commit/{{.Hash}}" class="btn btn-outline">{{.Hash}}</a>
+				<a href="/tree/{{.Hash}}" class="btn btn-outline">{{icon "code"}}</a>
+			</span>
+			<strong>{{.Message}}</strong><br>
+			<small><strong>{{.Author.Name}}</strong> committed on {{.Author.When}}</small>
 		</div>
 	{{end}}
 </nav>
