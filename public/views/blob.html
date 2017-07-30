@@ -3,8 +3,8 @@
 <nav>
 	<p>
 		<a href="/"><strong>{{.RepoName}}</strong></a>
-		{{range .Parents}} / <a href="#">{{.}}</a>{{end}}
-		/ {{.Filename}}
+		{{range .Parents}} / <a href="/tree/master/{{.Path}}">{{.Name}}</a>{{end}}
+		/ <strong>{{.Filename}}</strong>
 	</p>
 </nav>
 

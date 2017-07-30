@@ -28,6 +28,26 @@ func cleanupCommitMessage(msg string) string {
 	return msg
 }
 
+type breadcumbItem struct {
+	Name string
+	Path string
+}
+
+func pathBreadcumb(p string) []breadcumbItem {
+	var breadcumb []breadcumbItem
+	if p := strings.Trim(p, "/"); p != "" {
+		names := strings.Split(p, "/")
+		breadcumb = make([]breadcumbItem, len(names))
+		for i, name := range names {
+			breadcumb[i] = breadcumbItem{
+				Name: name,
+				Path: path.Join(names[:i+1]...),
+			}
+		}
+	}
+	return breadcumb
+}
+
 type templateRenderer struct {
 	templates *template.Template
 }
@@ -94,7 +114,7 @@ func (s *server) tree(c echo.Context, revName, p string) error {
 	var data struct{
 		*headerData
 		DirName, DirSep string
-		Parents []string
+		Parents []breadcumbItem
 		Entries []object.TreeEntry
 		ReadMe template.HTML
 	}
@@ -121,11 +141,9 @@ func (s *server) tree(c echo.Context, revName, p string) error {
 		}
 	}
 
-	dir, file := path.Split(p)
-	data.DirName = file
-	if dir := strings.Trim(dir, "/"); dir != "" {
-		data.Parents = strings.Split(dir, "/")
-	}
+	dirpath, filepath := path.Split(p)
+	data.DirName = filepath
+	data.Parents = pathBreadcumb(dirpath)
 
 	data.DirSep = "/"+p+"/"
 	if p == "/" {
@@ -153,7 +171,7 @@ func (s *server) blob(c echo.Context, revName, p string) error {
 	var data struct{
 		*headerData
 		Filepath, Filename, Extension string
-		Parents []string
+		Parents []breadcumbItem
 		IsBinary bool
 		Contents string
 	}
@@ -164,9 +182,7 @@ func (s *server) blob(c echo.Context, revName, p string) error {
 	data.Filepath = p
 	data.Filename = filename
 	data.Extension = strings.TrimLeft(path.Ext(p), ".")
-	if dirpath := strings.Trim(dirpath, "/"); dirpath != "" {
-		data.Parents = strings.Split(dirpath, "/")
-	}
+	data.Parents = pathBreadcumb(dirpath)
 
 	if f.Size > 1024*1024 {
 		data.IsBinary = true
