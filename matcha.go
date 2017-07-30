@@ -72,20 +72,32 @@ func (s *server) headerData() *headerData {
 }
 
 func (s *server) commitFromRev(revName string) (*object.Commit, error) {
+	// First try to resolve a hash
 	commit, err := s.r.CommitObject(plumbing.NewHash(revName))
 	if err != plumbing.ErrObjectNotFound {
 		return commit, err
 	}
 
-	// TODO: use plumbing.ReferenceName(revName)
+	// Then a branch
 	ref, err := s.r.Reference(plumbing.ReferenceName("refs/heads/"+revName), true)
-	if err == plumbing.ErrReferenceNotFound {
-		ref, err = s.r.Reference(plumbing.ReferenceName("refs/tags/"+revName), true)
-	} else if err != nil {
+	if err == nil {
+		return s.r.CommitObject(ref.Hash())
+	} else if err != plumbing.ErrReferenceNotFound {
 		return nil, err
 	}
 
-	return s.r.CommitObject(ref.Hash())
+	// Finally a tag
+	ref, err = s.r.Reference(plumbing.ReferenceName("refs/tags/"+revName), true)
+	if err != nil {
+		return nil, err
+	}
+
+	tag, err := s.r.TagObject(ref.Hash())
+	if err != nil {
+		return nil, err
+	}
+
+	return tag.Commit()
 }
 
 func (s *server) tree(c echo.Context, revName, p string) error {
