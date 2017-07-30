@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"path"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/labstack/echo"
@@ -101,11 +102,16 @@ func (s *server) commitFromRev(revName string) (*object.Commit, error) {
 	return tag.Commit()
 }
 
-func (s *server) lastCommits(current *object.Commit, patterns []string) ([]*object.Commit, error) {
+func (s *server) lastCommits(from *object.Commit, patterns []string) ([]*object.Commit, error) {
 	last := make([]*object.Commit, len(patterns))
+	/*for i := range last {
+		last[i] = from
+	}
+	return last, nil*/
+
 	remaining := len(patterns)
 
-	commits, err := s.r.Log(&git.LogOptions{From: current.Hash})
+	commits, err := s.r.Log(&git.LogOptions{From: from.Hash})
 	if err != nil {
 		return nil, err
 	}
@@ -207,6 +213,17 @@ func (s *server) tree(c echo.Context, revName, p string) error {
 
 	data.headerData = s.headerData()
 	data.Revision = revName
+
+	sort.Slice(tree.Entries, func(i, j int) bool {
+		a, b := &tree.Entries[i], &tree.Entries[j]
+		if a.Mode & filemode.Dir != 0 {
+			return true
+		}
+		if b.Mode & filemode.Dir != 0 {
+			return false
+		}
+		return a.Name < b.Name
+	})
 
 	patterns := make([]string, 0, len(tree.Entries) + 1)
 	pathPattern := p + "/"
