@@ -1,9 +1,7 @@
 package matcha
 
 import (
-	"bytes"
 	"html/template"
-	"io"
 	"net/http"
 	"path"
 	"path/filepath"
@@ -12,51 +10,12 @@ import (
 
 	"github.com/labstack/echo"
 	"github.com/russross/blackfriday"
-	"github.com/shurcooL/octiconssvg"
-	nethtml "golang.org/x/net/html"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/filemode"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
 	"gopkg.in/src-d/go-git.v4/plumbing/storer"
 )
-
-const pgpSigEndTag = "-----END PGP SIGNATURE-----"
-
-func cleanupCommitMessage(msg string) string {
-	if i := strings.Index(msg, pgpSigEndTag); i >= 0 {
-		msg = msg[i+len(pgpSigEndTag):]
-	}
-	return msg
-}
-
-type breadcumbItem struct {
-	Name string
-	Path string
-}
-
-func pathBreadcumb(p string) []breadcumbItem {
-	var breadcumb []breadcumbItem
-	if p := strings.Trim(p, "/"); p != "" {
-		names := strings.Split(p, "/")
-		breadcumb = make([]breadcumbItem, len(names))
-		for i, name := range names {
-			breadcumb[i] = breadcumbItem{
-				Name: name,
-				Path: path.Join(names[:i+1]...),
-			}
-		}
-	}
-	return breadcumb
-}
-
-type templateRenderer struct {
-	templates *template.Template
-}
-
-func (r *templateRenderer) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
-	return r.templates.ExecuteTemplate(w, name, data)
-}
 
 type server struct {
 	dir string
@@ -502,13 +461,10 @@ func New(e *echo.Echo, dir string) error {
 		return err
 	}
 
-	funcs := template.FuncMap{"icon": func(name string) template.HTML {
-		var b bytes.Buffer
-		nethtml.Render(&b, octiconssvg.Icon(name))
-		return template.HTML(b.String())
-	}}
-	t := template.Must(template.New("").Funcs(funcs).ParseGlob("public/views/*.html"))
-	e.Renderer = &templateRenderer{t}
+	e.Renderer, err = loadTemplateRenderer()
+	if err != nil {
+		return err
+	}
 
 	r, err := git.PlainOpen(dir)
 	if err == git.ErrRepositoryNotExists {
