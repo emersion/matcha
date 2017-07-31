@@ -8,7 +8,7 @@
 		</div>
 		<div class="Box-body">
 			<code class="float-right">{{.Hash}}</code>
-			<strong>{{.Author.Name}}</strong> commited on {{.Author.When}}
+			<strong>{{.Author.Name}}</strong> commited {{date .Author.When}}
 		</div>
 	</div>
 {{end}}

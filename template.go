@@ -2,10 +2,12 @@ package matcha
 
 import (
 	"bytes"
+	"fmt"
 	"html/template"
 	"io"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/labstack/echo"
 	"github.com/shurcooL/octiconssvg"
@@ -41,6 +43,26 @@ func pathBreadcumb(p string) []breadcumbItem {
 	return breadcumb
 }
 
+func formatDuration(d time.Duration) string {
+	if d < time.Minute {
+		return fmt.Sprintf("%d seconds", d / time.Second)
+	}
+	if d < time.Hour {
+		return fmt.Sprintf("%d minutes", d / time.Minute)
+	}
+	if d < 24 * time.Hour {
+		return fmt.Sprintf("%d hours", d / time.Hour)
+	}
+	return fmt.Sprintf("%d days", d / (24 * time.Hour))
+}
+
+func formatDate(t time.Time, d time.Duration) string {
+	if d < 365 * 24 * time.Hour { // 1 year
+		return t.Format("Jan 2")
+	}
+	return t.Format("Jan 2, 2006")
+}
+
 type templateRenderer struct {
 	templates *template.Template
 }
@@ -50,11 +72,27 @@ func (r *templateRenderer) Render(w io.Writer, name string, data interface{}, c 
 }
 
 func loadTemplateRenderer() (echo.Renderer, error) {
-	funcs := template.FuncMap{"icon": func(name string) template.HTML {
-		var b bytes.Buffer
-		nethtml.Render(&b, octiconssvg.Icon(name))
-		return template.HTML(b.String())
-	}}
+	funcs := template.FuncMap{
+		"icon": func(name string) template.HTML {
+			var b bytes.Buffer
+			nethtml.Render(&b, octiconssvg.Icon(name))
+			return template.HTML(b.String())
+		},
+		"date": func(t time.Time) template.HTML {
+			d := time.Since(t)
+
+			var s string
+			if d >= 0 && d < 30 * 24 * time.Hour { // 1 month
+				s = formatDuration(d) + " ago"
+			} else {
+				s = "on " + formatDate(t, d)
+			}
+
+			full := t.Format("Jan 02, 2006, 15:04 -0700")
+			s = `<relative-time datetime="`+t.Format(time.RFC3339)+`" title="`+full+`">`+s+`</relative-time>`
+			return template.HTML(s)
+		},
+	}
 
 	t, err := template.New("").Funcs(funcs).ParseGlob("public/views/*.html")
 	if err != nil {

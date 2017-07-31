@@ -19,7 +19,7 @@
 <div class="Box Box--condensed Box--blue">
 	{{with .LastCommit}}
 		<div class="Box-header">
-			<span class="text-gray float-right">{{.Author.When}}</span>
+			<span class="text-gray float-right">{{date .Author.When}}</span>
 			<strong>{{.Author.Name}}</strong> <a href="/commit/{{.Hash}}" class="muted-link">{{.Message}}</a>
 		</div>
 	{{end}}
@@ -27,7 +27,7 @@
 		{{range .Entries}}
 			<li class="Box-row">
 				{{with .LastCommit}}
-					<span class="text-gray float-right">{{.Author.When}}</span>
+					<span class="text-gray float-right">{{date .Author.When}}</span>
 				{{end}}
 				{{if .Mode.ToOSFileMode.IsDir}}
 					<span class="text-blue">{{icon "file-directory"}}</span>&nbsp;<a href="/tree/{{$.Revision}}{{$.DirSep}}{{.Name}}">{{.Name}}</a>

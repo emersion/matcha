@@ -9,7 +9,7 @@
 			</span>
 
 			<h3>{{.Name}}</h3>
-			<p><strong>{{.Tagger.Name}}</strong> tagged this on {{.Tagger.When}}</p>
+			<p><strong>{{.Tagger.Name}}</strong> tagged this {{date .Tagger.When}}</p>
 			<p>{{.Message}}</p>
 		</div>
 		<hr>

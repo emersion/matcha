@@ -8,7 +8,7 @@
 				<a href="/tree/{{.Hash}}" class="btn btn-outline">{{icon "code"}}</a>
 			</span>
 			<strong>{{.Message}}</strong><br>
-			<small><strong>{{.Author.Name}}</strong> committed on {{.Author.When}}</small>
+			<small><strong>{{.Author.Name}}</strong> committed {{date .Author.When}}</small>
 		</div>
 	{{end}}
 </nav>
