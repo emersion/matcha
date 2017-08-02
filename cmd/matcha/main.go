@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"os"
 
 	"github.com/labstack/echo"
@@ -16,13 +17,19 @@ func main() {
 		addr = ":"+port
 	}
 
+	flag.Parse()
+	dir := flag.Arg(0)
+	if dir == "" {
+		dir = "."
+	}
+
 	e := echo.New()
 	e.Logger.SetLevel(log.INFO)
 
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
-	if err := matcha.New(e, "."); err != nil {
+	if err := matcha.New(e, dir); err != nil {
 		e.Logger.Fatal(err)
 	}
 
