@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/labstack/echo"
-	"github.com/shurcooL/octiconssvg"
+	octiconssvg "github.com/shurcooL/octiconssvg"
 	nethtml "golang.org/x/net/html"
 )
 
