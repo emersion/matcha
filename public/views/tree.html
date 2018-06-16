@@ -20,7 +20,7 @@
 	{{with .LastCommit}}
 		<div class="Box-header">
 			<span class="text-gray float-right">{{date .Author.When}}</span>
-			<strong>{{.Author.Name}}</strong> <a href="/commit/{{.Hash}}" class="muted-link">{{.Message}}</a>
+			<strong>{{.Author.Name}}</strong> <a href="/commit/{{.Hash}}" class="muted-link">{{commitSummary .Message}}</a>
 		</div>
 	{{end}}
 	<ul>
@@ -35,7 +35,7 @@
 					<span class="text-blue">{{icon "file"}}</span>&nbsp;<a href="/blob/{{$.Revision}}{{$.DirSep}}{{.Name}}">{{.Name}}</a>
 				{{end}}
 				{{with .LastCommit}}
-					<a href="/commit/{{.Hash}}" class="muted-link">{{.Message}}</a>
+					<a href="/commit/{{.Hash}}" class="muted-link">{{commitSummary .Message}}</a>
 				{{end}}
 			</li>
 		{{end}}

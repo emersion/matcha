@@ -17,10 +17,21 @@ import (
 const pgpSigEndTag = "-----END PGP SIGNATURE-----"
 
 func cleanupCommitMessage(msg string) string {
+	msg = strings.TrimSpace(msg)
 	if i := strings.Index(msg, pgpSigEndTag); i >= 0 {
 		msg = msg[i+len(pgpSigEndTag):]
 	}
 	return msg
+}
+
+func splitCommitMessage(msg string) (summary string, description string) {
+	msg = cleanupCommitMessage(msg)
+	parts := strings.SplitN(msg, "\n", 2)
+	summary = strings.TrimSpace(parts[0])
+	if len(parts) < 2 {
+		return summary, ""
+	}
+	return summary, strings.TrimSpace(parts[1])
 }
 
 type breadcumbItem struct {
@@ -91,6 +102,17 @@ func loadTemplateRenderer() (echo.Renderer, error) {
 			full := t.Format("Jan 02, 2006, 15:04 -0700")
 			s = `<relative-time datetime="`+t.Format(time.RFC3339)+`" title="`+full+`">`+s+`</relative-time>`
 			return template.HTML(s)
+		},
+		"commitSummary": func(msg string) string {
+			summary, _ := splitCommitMessage(msg)
+			return summary
+		},
+		"commitDescription": func(msg string) string {
+			_, description := splitCommitMessage(msg)
+			return description
+		},
+		"newlines": func(s string) template.HTML {
+			return template.HTML(strings.Replace(template.HTMLEscapeString(s), "\n", "<br>", -1))
 		},
 	}
 

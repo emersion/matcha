@@ -4,7 +4,8 @@
 	<div class="Box Box--blue">
 		<div class="Box-header">
 			<a class="btn btn-outline float-right" type="button" href="/tree/{{.Hash}}">Browse files</a>
-			<h3>{{.Message}}</h3>
+			<h3>{{.Message | commitSummary}}</h3>
+			{{if commitDescription .Message}} <p>{{.Message | commitDescription | newlines}}</p>{{end}}
 		</div>
 		<div class="Box-body">
 			<code class="float-right">{{.Hash}}</code>

@@ -205,9 +205,6 @@ func (s *server) tree(c echo.Context, revName, p string) error {
 	if err != nil {
 		return err
 	}
-	for _, c := range lastCommits {
-		c.Message = cleanupCommitMessage(c.Message)
-	}
 
 	data.Entries = make([]treeEntry, len(tree.Entries))
 	data.LastCommit = lastCommits[0]
@@ -406,8 +403,6 @@ func (s *server) commits(c echo.Context, revName string) error {
 	data.headerData = s.headerData()
 
 	err = commits.ForEach(func(c *object.Commit) error {
-		c.Message = cleanupCommitMessage(c.Message)
-
 		data.Commits = append(data.Commits, c)
 		return nil
 	})
@@ -433,8 +428,6 @@ func (s *server) commit(c echo.Context, hash string) error {
 	}
 
 	data.headerData = s.headerData()
-
-	commit.Message = cleanupCommitMessage(commit.Message)
 	data.Commit = commit
 
 	if len(commit.ParentHashes) > 0 {
