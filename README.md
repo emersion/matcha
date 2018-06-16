@@ -2,6 +2,8 @@
 
 A simple read-only web interface for Git repositories.
 
+![Screenshot](https://sr.ht/W5M8.png)
+
 ## Usage
 
 ```sh
