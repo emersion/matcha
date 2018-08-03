@@ -1,15 +1,17 @@
 {{template "header.html" .}}
 
+{{$h := .}}
+
 <nav>
 	<p>
-		<a href="/tree/{{$.Revision}}"><strong>{{.RepoName}}</strong></a>
-		{{range .Parents}} / <a href="/tree/{{$.Revision}}/{{.Path}}">{{.Name}}</a>{{end}}
+		<a href="{{.RepoPath}}/tree/{{$.Revision}}"><strong>{{.RepoName}}</strong></a>
+		{{range .Parents}} / <a href="{{$h.RepoPath}}/tree/{{$.Revision}}/{{.Path}}">{{.Name}}</a>{{end}}
 		/ <strong>{{.Filename}}</strong>
 	</p>
 </nav>
 
 <p>
-	<a href="/raw/{{$.Revision}}/{{.Filepath}}" class="btn btn-sm">Raw</a>
+	<a href="{{.RepoPath}}/raw/{{$.Revision}}/{{.Filepath}}" class="btn btn-sm">Raw</a>
 </p>
 
 {{if .IsBinary}}

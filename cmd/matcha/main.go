@@ -14,7 +14,7 @@ import (
 func main() {
 	addr := ":8088"
 	if port := os.Getenv("PORT"); port != "" {
-		addr = ":"+port
+		addr = ":" + port
 	}
 
 	flag.Parse()

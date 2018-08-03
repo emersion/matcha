@@ -17,43 +17,50 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing/storer"
 )
 
-type server struct {
-	dir string
-	r *git.Repository
+func repo(c echo.Context) (*git.Repository, error) {
+	v := c.Get("repo")
+	if v == nil {
+		return nil, echo.ErrNotFound
+	}
+	return v.(*git.Repository), nil
 }
+
+type server struct{}
 
 type headerData struct {
 	RepoName string
+	RepoPath string
 }
 
-func (s *server) headerData() *headerData {
+func (s *server) headerData(c echo.Context) *headerData {
 	return &headerData{
-		RepoName: filepath.Base(s.dir),
+		RepoName: c.Get("repo-name").(string),
+		RepoPath: c.Get("repo-path").(string),
 	}
 }
 
-func (s *server) commitFromRev(revName string) (*object.Commit, error) {
+func (s *server) commitFromRev(r *git.Repository, revName string) (*object.Commit, error) {
 	// First try to resolve a hash
-	commit, err := s.r.CommitObject(plumbing.NewHash(revName))
+	commit, err := r.CommitObject(plumbing.NewHash(revName))
 	if err != plumbing.ErrObjectNotFound {
 		return commit, err
 	}
 
 	// Then a branch
-	ref, err := s.r.Reference(plumbing.ReferenceName("refs/heads/"+revName), true)
+	ref, err := r.Reference(plumbing.ReferenceName("refs/heads/"+revName), true)
 	if err == nil {
-		return s.r.CommitObject(ref.Hash())
+		return r.CommitObject(ref.Hash())
 	} else if err != plumbing.ErrReferenceNotFound {
 		return nil, err
 	}
 
 	// Finally a tag
-	ref, err = s.r.Reference(plumbing.ReferenceName("refs/tags/"+revName), true)
+	ref, err = r.Reference(plumbing.ReferenceName("refs/tags/"+revName), true)
 	if err != nil {
 		return nil, err
 	}
 
-	tag, err := s.r.TagObject(ref.Hash())
+	tag, err := r.TagObject(ref.Hash())
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +68,7 @@ func (s *server) commitFromRev(revName string) (*object.Commit, error) {
 	return tag.Commit()
 }
 
-func (s *server) lastCommits(from *object.Commit, patterns []string) ([]*object.Commit, error) {
+func (s *server) lastCommits(r *git.Repository, from *object.Commit, patterns []string) ([]*object.Commit, error) {
 	last := make([]*object.Commit, len(patterns))
 	/*for i := range last {
 		last[i] = from
@@ -70,7 +77,7 @@ func (s *server) lastCommits(from *object.Commit, patterns []string) ([]*object.
 
 	remaining := len(patterns)
 
-	commits, err := s.r.Log(&git.LogOptions{From: from.Hash})
+	commits, err := r.Log(&git.LogOptions{From: from.Hash})
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +143,12 @@ type treeEntry struct {
 }
 
 func (s *server) tree(c echo.Context, revName, p string) error {
-	commit, err := s.commitFromRev(revName)
+	r, err := repo(c)
+	if err != nil {
+		return err
+	}
+
+	commit, err := s.commitFromRev(r, revName)
 	if err == plumbing.ErrReferenceNotFound {
 		return c.String(http.StatusNotFound, "No such revision")
 	} else if err != nil {
@@ -160,31 +172,31 @@ func (s *server) tree(c echo.Context, revName, p string) error {
 		}
 	}
 
-	var data struct{
+	var data struct {
 		*headerData
-		Revision string
+		Revision        string
 		DirName, DirSep string
-		Parents []breadcumbItem
-		Entries []treeEntry
-		LastCommit *object.Commit
-		ReadMe template.HTML
+		Parents         []breadcumbItem
+		Entries         []treeEntry
+		LastCommit      *object.Commit
+		ReadMe          template.HTML
 	}
 
-	data.headerData = s.headerData()
+	data.headerData = s.headerData(c)
 	data.Revision = revName
 
 	sort.Slice(tree.Entries, func(i, j int) bool {
 		a, b := &tree.Entries[i], &tree.Entries[j]
-		if a.Mode & filemode.Dir != 0 {
+		if a.Mode&filemode.Dir != 0 {
 			return true
 		}
-		if b.Mode & filemode.Dir != 0 {
+		if b.Mode&filemode.Dir != 0 {
 			return false
 		}
 		return a.Name < b.Name
 	})
 
-	patterns := make([]string, 0, len(tree.Entries) + 1)
+	patterns := make([]string, 0, len(tree.Entries)+1)
 	pathPattern := p + "/"
 	if p == "/" {
 		pathPattern = ""
@@ -195,13 +207,13 @@ func (s *server) tree(c echo.Context, revName, p string) error {
 		if p != "/" {
 			pattern = path.Join(p, pattern)
 		}
-		if e.Mode & filemode.Dir != 0 {
+		if e.Mode&filemode.Dir != 0 {
 			pattern += "/"
 		}
 		patterns = append(patterns, pattern)
 	}
 
-	lastCommits, err := s.lastCommits(commit, patterns)
+	lastCommits, err := s.lastCommits(r, commit, patterns)
 	if err != nil {
 		return err
 	}
@@ -214,7 +226,7 @@ func (s *server) tree(c echo.Context, revName, p string) error {
 
 	for _, e := range tree.Entries {
 		name := strings.TrimSuffix(e.Name, path.Ext(e.Name))
-		if strings.EqualFold(name, "README") && e.Mode & filemode.Regular != 0 {
+		if strings.EqualFold(name, "README") && e.Mode&filemode.Regular != 0 {
 			f, err := tree.TreeEntryFile(&e)
 			if err != nil {
 				return err
@@ -235,7 +247,7 @@ func (s *server) tree(c echo.Context, revName, p string) error {
 	data.DirName = filepath
 	data.Parents = pathBreadcumb(dirpath)
 
-	data.DirSep = "/"+p+"/"
+	data.DirSep = "/" + p + "/"
 	if p == "/" {
 		data.DirSep = "/"
 	}
@@ -244,7 +256,12 @@ func (s *server) tree(c echo.Context, revName, p string) error {
 }
 
 func (s *server) blob(c echo.Context, revName, p string) error {
-	commit, err := s.commitFromRev(revName)
+	r, err := repo(c)
+	if err != nil {
+		return err
+	}
+
+	commit, err := s.commitFromRev(r, revName)
 	if err == plumbing.ErrReferenceNotFound {
 		return c.String(http.StatusNotFound, "No such revision")
 	} else if err != nil {
@@ -258,17 +275,17 @@ func (s *server) blob(c echo.Context, revName, p string) error {
 		return err
 	}
 
-	var data struct{
+	var data struct {
 		*headerData
-		Revision string
+		Revision                      string
 		Filepath, Filename, Extension string
-		Parents []breadcumbItem
-		IsBinary bool
-		Rendered template.HTML
-		Contents string
+		Parents                       []breadcumbItem
+		IsBinary                      bool
+		Rendered                      template.HTML
+		Contents                      string
 	}
 
-	data.headerData = s.headerData()
+	data.headerData = s.headerData(c)
 	data.Revision = revName
 
 	dirpath, filename := path.Split(p)
@@ -301,7 +318,12 @@ func (s *server) blob(c echo.Context, revName, p string) error {
 }
 
 func (s *server) raw(c echo.Context, revName, p string) error {
-	commit, err := s.commitFromRev(revName)
+	r, err := repo(c)
+	if err != nil {
+		return err
+	}
+
+	commit, err := s.commitFromRev(r, revName)
 	if err == plumbing.ErrReferenceNotFound {
 		return c.String(http.StatusNotFound, "No such revision")
 	} else if err != nil {
@@ -315,11 +337,11 @@ func (s *server) raw(c echo.Context, revName, p string) error {
 		return err
 	}
 
-	r, err := f.Reader()
+	rr, err := f.Reader()
 	if err != nil {
 		return err
 	}
-	defer r.Close()
+	defer rr.Close()
 
 	// TODO: autodetect file type
 	mediaType := "application/octet-stream"
@@ -328,22 +350,27 @@ func (s *server) raw(c echo.Context, revName, p string) error {
 	}
 
 	// TODO: set filename
-	return c.Stream(http.StatusOK, mediaType, r)
+	return c.Stream(http.StatusOK, mediaType, rr)
 }
 
 func (s *server) branches(c echo.Context) error {
-	branches, err := s.r.Branches()
+	r, err := repo(c)
+	if err != nil {
+		return err
+	}
+
+	branches, err := r.Branches()
 	if err != nil {
 		return err
 	}
 	defer branches.Close()
 
-	var data struct{
+	var data struct {
 		*headerData
 		Branches []string
 	}
 
-	data.headerData = s.headerData()
+	data.headerData = s.headerData(c)
 
 	err = branches.ForEach(func(ref *plumbing.Reference) error {
 		data.Branches = append(data.Branches, ref.Name().Short())
@@ -357,18 +384,23 @@ func (s *server) branches(c echo.Context) error {
 }
 
 func (s *server) tags(c echo.Context) error {
-	tags, err := s.r.TagObjects()
+	r, err := repo(c)
+	if err != nil {
+		return err
+	}
+
+	tags, err := r.TagObjects()
 	if err != nil {
 		return err
 	}
 	defer tags.Close()
 
-	var data struct{
+	var data struct {
 		*headerData
 		Tags []*object.Tag
 	}
 
-	data.headerData = s.headerData()
+	data.headerData = s.headerData(c)
 
 	err = tags.ForEach(func(t *object.Tag) error {
 		data.Tags = append(data.Tags, t)
@@ -382,25 +414,30 @@ func (s *server) tags(c echo.Context) error {
 }
 
 func (s *server) commits(c echo.Context, revName string) error {
-	commit, err := s.commitFromRev(revName)
+	r, err := repo(c)
+	if err != nil {
+		return err
+	}
+
+	commit, err := s.commitFromRev(r, revName)
 	if err == plumbing.ErrReferenceNotFound {
 		return c.String(http.StatusNotFound, "No such revision")
 	} else if err != nil {
 		return err
 	}
 
-	commits, err := s.r.Log(&git.LogOptions{From: commit.Hash})
+	commits, err := r.Log(&git.LogOptions{From: commit.Hash})
 	if err != nil {
 		return err
 	}
 	defer commits.Close()
 
-	var data struct{
+	var data struct {
 		*headerData
 		Commits []*object.Commit
 	}
 
-	data.headerData = s.headerData()
+	data.headerData = s.headerData(c)
 
 	err = commits.ForEach(func(c *object.Commit) error {
 		data.Commits = append(data.Commits, c)
@@ -414,25 +451,30 @@ func (s *server) commits(c echo.Context, revName string) error {
 }
 
 func (s *server) commit(c echo.Context, hash string) error {
-	commit, err := s.r.CommitObject(plumbing.NewHash(hash))
+	r, err := repo(c)
+	if err != nil {
+		return err
+	}
+
+	commit, err := r.CommitObject(plumbing.NewHash(hash))
 	if err == plumbing.ErrObjectNotFound {
 		return c.String(http.StatusNotFound, "No such commit")
 	} else if err != nil {
 		return err
 	}
 
-	var data struct{
+	var data struct {
 		*headerData
 		Commit *object.Commit
-		Diff string
+		Diff   string
 	}
 
-	data.headerData = s.headerData()
+	data.headerData = s.headerData(c)
 	data.Commit = commit
 
 	if len(commit.ParentHashes) > 0 {
 		// TODO
-		parent, err := s.r.CommitObject(commit.ParentHashes[0])
+		parent, err := r.CommitObject(commit.ParentHashes[0])
 		if err != nil {
 			return err
 		}
@@ -459,14 +501,36 @@ func New(e *echo.Echo, dir string) error {
 		return err
 	}
 
-	r, err := git.PlainOpen(dir)
-	if err == git.ErrRepositoryNotExists {
-		return err //return c.String(http.StatusNotFound, "No such repository")
-	} else if err != nil {
-		return err
-	}
+	e.Pre(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			req := c.Request()
+			parent, dirname := filepath.Split(dir)
+			dirParts := append([]string{parent}, dirname)
+			reqParts := strings.Split(req.URL.Path, "/")
 
-	s := &server{dir, r}
+			for i := 0; i <= len(reqParts); i++ {
+				parts := append(dirParts, reqParts[:i]...)
+				p := filepath.Join(parts...)
+
+				r, err := git.PlainOpen(p)
+				if err == git.ErrRepositoryNotExists {
+					continue
+				} else if err != nil {
+					return err
+				}
+
+				req.URL.Path = "/" + path.Join(reqParts[i:]...)
+				c.Set("repo", r)
+				c.Set("repo-name", parts[len(dirParts)+i-1])
+				c.Set("repo-path", "/"+path.Join(reqParts[:i]...))
+				return next(c)
+			}
+
+			return next(c)
+		}
+	})
+
+	s := &server{}
 
 	e.GET("/", func(c echo.Context) error {
 		return s.tree(c, "master", "/")

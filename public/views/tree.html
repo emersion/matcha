@@ -1,16 +1,18 @@
 {{template "header.html" .}}
 
+{{$h := .}}
+
 {{if eq .DirName ""}}
 	<nav class="subnav" aria-label="Repository">
-		<a href="/commits/{{$.Revision}}" class="tabnav-tab">{{icon "git-commit"}} Commits</a>
-		<a href="/branches" class="tabnav-tab">{{icon "git-branch"}} Branches</a>
-		<a href="/tags" class="tabnav-tab">{{icon "tag"}} Tags</a>
+		<a href="{{.RepoPath}}/commits/{{$.Revision}}" class="tabnav-tab">{{icon "git-commit"}} Commits</a>
+		<a href="{{.RepoPath}}/branches" class="tabnav-tab">{{icon "git-branch"}} Branches</a>
+		<a href="{{.RepoPath}}/tags" class="tabnav-tab">{{icon "tag"}} Tags</a>
 	</nav>
 {{else}}
 	<nav>
 		<p>
-			<a href="/tree/{{$.Revision}}"><strong>{{.RepoName}}</strong></a>
-			{{range .Parents}} / <a href="/tree/{{$.Revision}}/{{.Path}}">{{.Name}}</a>{{end}}
+			<a href="{{.RepoPath}}/tree/{{$.Revision}}"><strong>{{.RepoName}}</strong></a>
+			{{range .Parents}} / <a href="{{$h.RepoPath}}/tree/{{$.Revision}}/{{.Path}}">{{.Name}}</a>{{end}}
 			/ <strong>{{.DirName}}</strong>
 		</p>
 	</nav>
@@ -20,7 +22,7 @@
 	{{with .LastCommit}}
 		<div class="Box-header">
 			<span class="text-gray float-right">{{date .Author.When}}</span>
-			<strong>{{.Author.Name}}</strong> <a href="/commit/{{.Hash}}" class="muted-link">{{commitSummary .Message}}</a>
+			<strong>{{.Author.Name}}</strong> <a href="{{$h.RepoPath}}/commit/{{.Hash}}" class="muted-link">{{commitSummary .Message}}</a>
 		</div>
 	{{end}}
 	<ul>
@@ -30,12 +32,12 @@
 					<span class="text-gray float-right">{{date .Author.When}}</span>
 				{{end}}
 				{{if .Mode.ToOSFileMode.IsDir}}
-					<span class="text-blue">{{icon "file-directory"}}</span>&nbsp;<a href="/tree/{{$.Revision}}{{$.DirSep}}{{.Name}}">{{.Name}}</a>
+					<span class="text-blue">{{icon "file-directory"}}</span>&nbsp;<a href="{{$h.RepoPath}}/tree/{{$.Revision}}{{$.DirSep}}{{.Name}}">{{.Name}}</a>
 				{{else}}
-					<span class="text-blue">{{icon "file"}}</span>&nbsp;<a href="/blob/{{$.Revision}}{{$.DirSep}}{{.Name}}">{{.Name}}</a>
+					<span class="text-blue">{{icon "file"}}</span>&nbsp;<a href="{{$h.RepoPath}}/blob/{{$.Revision}}{{$.DirSep}}{{.Name}}">{{.Name}}</a>
 				{{end}}
 				{{with .LastCommit}}
-					<a href="/commit/{{.Hash}}" class="muted-link">{{commitSummary .Message}}</a>
+					<a href="{{$h.RepoPath}}/commit/{{.Hash}}" class="muted-link">{{commitSummary .Message}}</a>
 				{{end}}
 			</li>
 		{{end}}

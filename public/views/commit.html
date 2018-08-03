@@ -1,9 +1,11 @@
 {{template "header.html" .}}
 
+{{$h := .}}
+
 {{with .Commit}}
 	<div class="Box Box--blue">
 		<div class="Box-header">
-			<a class="btn btn-outline float-right" type="button" href="/tree/{{.Hash}}">Browse files</a>
+			<a class="btn btn-outline float-right" type="button" href="{{$h.RepoPath}}/tree/{{.Hash}}">Browse files</a>
 			<h3>{{.Message | commitSummary}}</h3>
 			{{if commitDescription .Message}} <p>{{.Message | commitDescription | newlines}}</p>{{end}}
 		</div>

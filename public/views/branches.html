@@ -1,8 +1,10 @@
 {{template "header.html" .}}
 
+{{$h := .}}
+
 <nav class="menu">
 	{{range .Branches}}
-		<a class="menu-item" href="/tree/{{.}}">{{.}}</a>
+		<a class="menu-item" href="{{$h.RepoPath}}/tree/{{.}}">{{.}}</a>
 	{{end}}
 </nav>
 

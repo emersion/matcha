@@ -1,11 +1,13 @@
 {{template "header.html" .}}
 
+{{$h := .}}
+
 <nav class="menu">
 	{{range .Commits}}
 		<div class="menu-item">
 			<span class="float-right">
-				<a href="/commit/{{.Hash}}" class="btn btn-outline">{{.Hash}}</a>
-				<a href="/tree/{{.Hash}}" class="btn btn-outline">{{icon "code"}}</a>
+				<a href="{{$h.RepoPath}}/commit/{{.Hash}}" class="btn btn-outline">{{.Hash}}</a>
+				<a href="{{$h.RepoPath}}/tree/{{.Hash}}" class="btn btn-outline">{{icon "code"}}</a>
 			</span>
 			<strong>{{commitSummary .Message}}</strong><br>
 			<small><strong>{{.Author.Name}}</strong> committed {{date .Author.When}}</small>

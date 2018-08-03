@@ -1,11 +1,13 @@
 {{template "header.html" .}}
 
+{{$h := .}}
+
 <nav>
 	{{range .Tags}}
 		<div>
 			<span class="float-right">
-				<a href="/commit/{{.Target}}" class="btn btn-outline">{{.Target}}</a>
-				<a href="/tree/{{.Name}}" class="btn btn-outline">{{icon "code"}}</a>
+				<a href="{{$h.RepoPath}}/commit/{{.Target}}" class="btn btn-outline">{{.Target}}</a>
+				<a href="{{$h.RepoPath}}/tree/{{.Name}}" class="btn btn-outline">{{icon "code"}}</a>
 			</span>
 
 			<h3>{{.Name}}</h3>
