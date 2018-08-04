@@ -14,6 +14,8 @@ import (
 	nethtml "golang.org/x/net/html"
 )
 
+var publicDir = "public"
+
 const pgpSigEndTag = "-----END PGP SIGNATURE-----"
 
 func cleanupCommitMessage(msg string) string {
@@ -116,7 +118,7 @@ func loadTemplateRenderer() (echo.Renderer, error) {
 		},
 	}
 
-	t, err := template.New("").Funcs(funcs).ParseGlob("public/views/*.html")
+	t, err := template.New("").Funcs(funcs).ParseGlob(publicDir + "/views/*.html")
 	if err != nil {
 		return nil, err
 	}
