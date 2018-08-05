@@ -14,8 +14,6 @@ import (
 	nethtml "golang.org/x/net/html"
 )
 
-var publicDir = "public"
-
 const pgpSigEndTag = "-----END PGP SIGNATURE-----"
 
 func cleanupCommitMessage(msg string) string {

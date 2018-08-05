@@ -17,6 +17,8 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing/storer"
 )
 
+var publicDir = "public"
+
 func repo(c echo.Context) (*git.Repository, error) {
 	v := c.Get("repo")
 	if v == nil {
@@ -556,7 +558,7 @@ func New(e *echo.Echo, dir string) error {
 		return s.commit(c, c.Param("hash"))
 	})
 
-	e.Static("/static", "public/node_modules")
+	e.Static("/static", publicDir + "/node_modules")
 
 	return nil
 }
