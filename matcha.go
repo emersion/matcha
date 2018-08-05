@@ -1,6 +1,7 @@
 package matcha
 
 import (
+	"bytes"
 	"html/template"
 	"net/http"
 	"path"
@@ -8,6 +9,10 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/alecthomas/chroma"
+	"github.com/alecthomas/chroma/formatters"
+	"github.com/alecthomas/chroma/lexers"
+	"github.com/alecthomas/chroma/styles"
 	"github.com/labstack/echo"
 	"github.com/russross/blackfriday"
 	"gopkg.in/src-d/go-git.v4"
@@ -282,7 +287,7 @@ func (s *server) blob(c echo.Context, revName, p string) error {
 		Revision                      string
 		Filepath, Filename, Extension string
 		Parents                       []breadcumbItem
-		IsBinary                      bool
+		IsBinary, IsText              bool
 		Rendered                      template.HTML
 		Contents                      string
 	}
@@ -313,6 +318,35 @@ func (s *server) blob(c echo.Context, revName, p string) error {
 		case "md", "markdown":
 			rendered := blackfriday.MarkdownCommon([]byte(contents))
 			data.Rendered = template.HTML(string(rendered))
+			data.IsText = true
+		default:
+			lexer := lexers.Match(filename)
+			if lexer == nil {
+				lexer = lexers.Fallback
+			}
+			lexer = chroma.Coalesce(lexer)
+
+			style := styles.Get("github")
+			if style == nil {
+				style = styles.Fallback
+			}
+
+			formatter := formatters.Get("html")
+			if formatter == nil {
+				formatter = formatters.Fallback
+			}
+
+			iterator, err := lexer.Tokenise(nil, contents)
+			if err != nil {
+				return err
+			}
+
+			var buf bytes.Buffer
+			if err := formatter.Format(&buf, style, iterator); err != nil {
+				return err
+			}
+
+			data.Rendered = template.HTML(buf.String())
 		}
 	}
 
@@ -467,8 +501,9 @@ func (s *server) commit(c echo.Context, hash string) error {
 
 	var data struct {
 		*headerData
-		Commit *object.Commit
-		Diff   string
+		Commit       *object.Commit
+		Diff         string
+		RenderedDiff template.HTML
 	}
 
 	data.headerData = s.headerData(c)
@@ -487,6 +522,34 @@ func (s *server) commit(c echo.Context, hash string) error {
 		}
 
 		data.Diff = patch.String()
+
+		lexer := lexers.Get("patch")
+		if lexer == nil {
+			lexer = lexers.Fallback
+		}
+		lexer = chroma.Coalesce(lexer)
+
+		style := styles.Get("github")
+		if style == nil {
+			style = styles.Fallback
+		}
+
+		formatter := formatters.Get("html")
+		if formatter == nil {
+			formatter = formatters.Fallback
+		}
+
+		iterator, err := lexer.Tokenise(nil, data.Diff)
+		if err != nil {
+			return err
+		}
+
+		var buf bytes.Buffer
+		if err := formatter.Format(&buf, style, iterator); err != nil {
+			return err
+		}
+
+		data.RenderedDiff = template.HTML(buf.String())
 	}
 
 	return c.Render(http.StatusOK, "commit.html", data)
@@ -521,10 +584,15 @@ func New(e *echo.Echo, dir string) error {
 					return err
 				}
 
+				repoPath := ""
+				if len(reqParts[:i]) > 0 {
+					repoPath = "/"+path.Join(reqParts[:i]...)
+				}
+
 				req.URL.Path = "/" + path.Join(reqParts[i:]...)
 				c.Set("repo", r)
 				c.Set("repo-name", parts[len(dirParts)+i-1])
-				c.Set("repo-path", "/"+path.Join(reqParts[:i]...))
+				c.Set("repo-path", repoPath)
 				return next(c)
 			}
 

@@ -18,8 +18,14 @@
 
 <p></p>
 
-<div class="markdown-body">
-	<pre><code class="language-diff">{{.Diff}}</code></pre>
-</div>
+{{if .RenderedDiff}}
+	<div class="markdown-body">
+		{{.RenderedDiff}}
+	</div>
+{{else}}
+	<div class="markdown-body">
+		<pre><code class="language-diff">{{.Diff}}</code></pre>
+	</div>
+{{end}}
 
 {{template "footer.html"}}

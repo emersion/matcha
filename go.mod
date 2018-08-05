@@ -1,6 +1,9 @@
 module github.com/emersion/matcha
 
 require (
+	github.com/alecthomas/chroma v0.5.0
+	github.com/danwakefield/fnmatch v0.0.0-20160403171240-cbb64ac3d964
+	github.com/dlclark/regexp2 v1.1.6
 	github.com/emirpasic/gods v1.9.0
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99
 	github.com/kevinburke/ssh_config v0.0.0-20180422193403-4fcc689beeab

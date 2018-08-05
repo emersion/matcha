@@ -20,11 +20,15 @@
 		<p>You can download it by clicking on "Raw".</p>
 	</div>
 {{else}}
-	{{if .Rendered}}
+	{{if and .IsText .Rendered}}
 		<div class="Box Box--condensed">
 			<div class="Box-body markdown-body">
 				{{.Rendered}}
 			</div>
+		</div>
+	{{else if .Rendered}}
+		<div class="markdown-body">
+			{{.Rendered}}
 		</div>
 	{{else}}
 		<div class="markdown-body">
