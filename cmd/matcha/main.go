@@ -12,9 +12,12 @@ import (
 )
 
 func main() {
-	addr := ":8088"
+	addr := os.Getenv("ADDRESS")
 	if port := os.Getenv("PORT"); port != "" {
-		addr = ":" + port
+		addr = "127.0.0.1:" + port
+	}
+	if addr == "" {
+		addr = "127.0.0.1:8088"
 	}
 
 	flag.Parse()
