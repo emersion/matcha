@@ -244,7 +244,7 @@ func (s *server) tree(c echo.Context, revName, p string) error {
 				return err
 			}
 
-			rendered := blackfriday.MarkdownCommon([]byte(raw))
+			rendered := blackfriday.Run([]byte(raw))
 			data.ReadMe = template.HTML(string(rendered))
 			break
 		}
@@ -316,7 +316,7 @@ func (s *server) blob(c echo.Context, revName, p string) error {
 
 		switch data.Extension {
 		case "md", "markdown":
-			rendered := blackfriday.MarkdownCommon([]byte(contents))
+			rendered := blackfriday.Run([]byte(contents))
 			data.Rendered = template.HTML(string(rendered))
 			data.IsText = true
 		default:
